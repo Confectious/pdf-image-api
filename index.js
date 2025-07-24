@@ -1,36 +1,25 @@
-const express = require('express');
-const multer = require('multer');
-const extract = require('pdf-extract-image');
-const fs = require('fs');
-const path = require('path');
+import express from 'express';
+import multer from 'multer';
+import fs from 'fs';
+import { extractImagesFromPdf } from 'pdf-extract-image';
 
 const app = express();
+const port = process.env.PORT || 3000;
 const upload = multer({ dest: 'uploads/' });
 
-app.post('/extract-images', upload.single('pdf'), async (req, res) => {
-  if (!req.file) return res.status(400).send({ error: 'No file uploaded' });
-
+app.post('/upload', upload.single('pdf'), async (req, res) => {
   try {
-    const outputDir = path.join(__dirname, 'outputs');
-    if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir);
+    const pdfPath = req.file.path;
+    const images = await extractImagesFromPdf(pdfPath);
 
-    const images = await extract(req.file.path, { outputDir });
-
-    const base64Images = images.map((imgPath) => {
-      const imgData = fs.readFileSync(imgPath);
-      return {
-        name: path.basename(imgPath),
-        data: imgData.toString('base64'),
-      };
-    });
-
+    const base64Images = images.map(img => img.toString('base64'));
     res.json({ images: base64Images });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send({ error: 'Failed to extract images' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Failed to extract images');
   }
 });
 
-app.listen(process.env.PORT || 3000, () => {
-  console.log('Server running on port 3000');
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
