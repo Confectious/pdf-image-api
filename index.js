@@ -1,32 +1,31 @@
 import express from 'express';
 import multer from 'multer';
-import { extractImagesFromPdf } from 'pdf-extract-image';
+import { extractImagesFromPDF } from 'pdf-image-extractor'; // See below
+import fs from 'fs/promises';
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Use multer memory storage (no folder needed)
+// Memory storage (no folders)
 const upload = multer({ storage: multer.memoryStorage() });
 
 app.post('/upload', upload.single('pdf'), async (req, res) => {
   try {
-    // Get PDF buffer from memory
-    const pdfBuffer = req.file.buffer;
+    const buffer = req.file.buffer;
 
-    // Extract images from the buffer
-    const images = await extractImagesFromPdf(pdfBuffer);
+    const { images } = await extractImagesFromPDF(buffer);
 
-    // Convert images to base64 strings
-    const base64Images = images.map(img => img.toString('base64'));
+    const base64Images = images.map(img =>
+      img.data.toString('base64')
+    );
 
-    // Respond with base64 images
     res.json({ images: base64Images });
-  } catch (error) {
-    console.error('Error extracting images:', error);
+  } catch (err) {
+    console.error(err);
     res.status(500).send('Failed to extract images from PDF');
   }
 });
 
 app.listen(port, () => {
-  console.log(`🚀 Server running on port ${port}`);
+  console.log(`Server running at http://localhost:${port}`);
 });
