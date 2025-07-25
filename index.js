@@ -12,23 +12,11 @@ app.post('/upload', upload.single('pdf'), async (req, res) => {
     const pdfPath = req.file.path;
     const images = await extractImagesFromPdf(pdfPath);
 
-    if (!images || images.length === 0) {
-      return res.status(200).json({ message: 'No images found in PDF', images: [] });
-    }
-
     const base64Images = images.map(img => img.toString('base64'));
-
-    fs.unlink(pdfPath, (err) => {
-      if (err) console.error('Failed to delete uploaded PDF:', err);
-    });
-
     res.json({ images: base64Images });
   } catch (error) {
-    console.error('Image extraction failed:', error);
-    res.status(500).json({
-      errorMessage: 'The service was not able to process your request',
-      errorDescription: 'Failed to extract images'
-    });
+    console.error(error);
+    res.status(500).send('Failed to extract images');
   }
 });
 
